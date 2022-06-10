@@ -20,6 +20,9 @@ int main(int argc, char* argv[])
 
     /* This will compile the expression and check for errors. */
     if (tep.compile(expression)) {
+#ifndef NDEBUG
+        te_parser::te_print(tep.get_compiled_expression(), 0);
+#endif
         /* The variables can be changed here, and eval can be called as many
          * times as you like. This is fairly efficient because the parsing has
          * already been done. */
@@ -29,7 +32,7 @@ int main(int argc, char* argv[])
     }
     else {
         /* Show the user where the error is at. */
-        printf("\t%*s^\nError near here", tep.get_last_error_position(), "");
+        printf("\t%*s^\nError near here", (int)tep.get_last_error_position(), "");
     }
 
     return 0;

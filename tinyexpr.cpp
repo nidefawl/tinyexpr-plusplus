@@ -86,23 +86,23 @@ For log = natural log uncomment the next line. */
     }
     return static_cast<double>(result);
 }
-[[nodiscard]] static double random()
+[[nodiscard]] static double _random()
     {
     std::random_device rd;
     std::mt19937 gen(rd());
-    const std::uniform_real_distribution<> distr(0, 1);
+    std::uniform_real_distribution<> distr(0, 1);
     return distr(gen);
     }
 [[nodiscard]] constexpr static double divide(double a, double b)
     {
     if (b == 0)
-        { throw std::exception("Division by zero."); }
+        { throw std::runtime_error("Division by zero."); }
     return a / b;
     }
 [[nodiscard]] static double modulus(double a, double b)
     {
     if (b == 0)
-        { throw std::exception("Modulus by zero."); }
+        { throw std::runtime_error("Modulus by zero."); }
     return std::fmod(a,b);
     }
 [[nodiscard]] static double sum(double v1, double v2, double v3, double v4,
@@ -249,7 +249,7 @@ te_expr* te_parser::new_expr(const variable_flags type, const variant_type& valu
     if (parameters.size())
         { std::copy(parameters.begin(), parameters.end(), ret->m_parameters.begin()); }
     ret->m_type = type;
-    ret->m_value = 0;
+    ret->m_value = double(0.0);
     return ret;
     }
 
@@ -296,7 +296,7 @@ const std::vector<te_variable> te_parser::m_functions = {
         [](const double num, const double start, const double end)
             {
             if (start > end)
-                { throw std::exception("Error in CLAMP: start of range cannot be larger than end of range."); }
+                { throw std::runtime_error("Error in CLAMP: start of range cannot be larger than end of range."); }
             return std::clamp<double>(num, start, end);
             }),
         TE_PURE},
@@ -328,7 +328,7 @@ const std::vector<te_variable> te_parser::m_functions = {
     {"pi",    static_cast<te_fun0>(pi),    TE_PURE},
     {"pow",   static_cast<te_fun2>(std::pow),   TE_PURE},
     {"power",/* Excel alias*/   static_cast<te_fun2>(std::pow),   TE_PURE},
-    {"rand",    static_cast<te_fun0>(random),    TE_PURE},
+    {"rand",    static_cast<te_fun0>(_random),    TE_PURE},
     {"round",   static_cast<te_fun2>(_round),   static_cast<variable_flags>(TE_PURE|TE_VARIADIC)},
     {"sign",   static_cast<te_fun1>(sign),   TE_PURE},
     {"sin",   static_cast<te_fun1>(std::sin),   TE_PURE},
@@ -704,9 +704,9 @@ double te_parser::te_eval(const te_expr *n)
     {
     if (!n) return std::numeric_limits<double>::quiet_NaN();
 
-    const auto M = [&n = std::as_const(n)](const size_t e) constexpr noexcept
+    const auto M = [nConst = const_cast<const te_expr*>(n)](const size_t e) constexpr noexcept
         {
-        return (e < n->m_parameters.size()) ? te_eval(n->m_parameters[e]) :
+        return (e < nConst->m_parameters.size()) ? te_eval(nConst->m_parameters[e]) :
             std::numeric_limits<double>::quiet_NaN();
         };
 
@@ -831,6 +831,10 @@ double te_parser::evaluate()
     m_result = (m_compiledExpression) ? te_eval(m_compiledExpression) : std::numeric_limits<double>::quiet_NaN();
     return m_result;
     }
+te_expr* te_parser::get_compiled_expression()
+    {
+    return m_compiledExpression;
+    }
 
 double te_parser::evaluate(const char* expression)
     {
@@ -850,7 +854,7 @@ void te_parser::te_print(const te_expr *n, int depth)
         int arity = get_arity(n->m_value);
         printf("f%d", arity);
         for (int i = 0; i < arity; i++)
-            { printf(" %p", n->m_parameters[i]); }
+            { printf(" %p", static_cast<void*>(n->m_parameters[i])); }
         printf("\n");
         for (int i = 0; i < arity; i++)
             { te_print(n->m_parameters[i], depth + 1); }
@@ -858,6 +862,6 @@ void te_parser::te_print(const te_expr *n, int depth)
     else if (is_constant(n->m_value))
         { printf("%f\n", get_constant(n->m_value)); }
     else if (is_variable(n->m_value))
-        { printf("bound %p\n", get_variable(n->m_value)); }
+        { printf("bound %p\n", static_cast<const void*>(get_variable(n->m_value))); }
     }
 #endif

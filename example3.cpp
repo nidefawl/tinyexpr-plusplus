@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
         printf("Result:\n\t%f\n", r);
     } else {
         /* Show the user where the error is at. */
-        printf("\t%*s^\nError near here", tep.get_last_error_position(), "");
+        printf("\t%*s^\nError near here", (int)tep.get_last_error_position(), "");
     }
 
 

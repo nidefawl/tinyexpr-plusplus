@@ -282,6 +282,8 @@ public:
     /** Evaluates expression passed to compile() previuosly and returns its result.
         @returns The result, or NaN on error.*/
     [[nodiscard]] double evaluate();
+
+    te_expr* get_compiled_expression();
     /** Compiles and evaluates an expression and returns its result.
         @param expression The formula to compile and evaluate.
         @returns The result, or NaN on error.*/
@@ -350,7 +352,7 @@ public:
             }
         catch (std::bad_variant_access const& ex)
             {
-            printf(ex.what());
+            fputs(ex.what(), stderr);
             return std::numeric_limits<double>::quiet_NaN();
             }
         }
@@ -373,6 +375,10 @@ public:
     /// @sa compile() and evaluate().
     [[nodiscard]] bool is_variable_used(const char* name) const
         { return m_usedVars.find(std::basic_string<char, case_insensitive_char_traits>(name)) != m_usedVars.cend(); }
+#ifndef NDEBUG
+    /* Prints debugging information on the syntax tree. */
+    static void te_print(const te_expr* n, int depth);
+#endif
 private:
     /// @returns The list of custom variables and functions.
     [[nodiscard]] std::vector<te_variable>& get_vars() noexcept
@@ -618,7 +624,7 @@ private:
 
             if (uniqueEnd != s->m_lookup.end())
                 {
-                fprintf(stderr, ("\n'" + uniqueEnd->m_name + "' was entered in the custom variable/function list twice!\n").c_str());
+                fprintf(stderr, "\n'%s' was entered in the custom variable/function list twice!\n", uniqueEnd->m_name.c_str());
                 assert(0 && "Custom variable/function list twice!");
                 }
             }
@@ -631,10 +637,6 @@ private:
         return (foundPos != s->m_lookup.cend() && foundPos->m_name.compare(0, foundPos->m_name.length(), name, len) == 0) ? foundPos : s->m_lookup.cend();
         }
 
-#ifndef NDEBUG
-    /* Prints debugging information on the syntax tree. */
-    static void te_print(const te_expr* n, int depth);
-#endif
 
     void next_token(state* s);
     [[nodiscard]] te_expr* base(state* s);
